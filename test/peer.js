@@ -183,20 +183,6 @@ describe('Peer', function() {
     peer._readMessage();
   });
 
-  it('send reject on malformed messages', function(done) {
-    var peer = new Peer({host: 'localhost'});
-    var malformed1 = 'd8c4c3d976657273696f6e000000000065000000fc970f177211' +
-      '01000100000000000000ba628854000000000100000000000000000000000000000' +
-      '00000ffffba8886dceab0010000000000000000000000000000000000ffff050955' +
-      '22208de7e1c1ef80a1cea70f2f5361746f7368693a302e392e312fa317050001';
-    peer.dataBuffer.push(new Buffer(malformed1, 'hex'));
-    peer.sendMessage = function(message) {
-      message.command.should.equal('reject');
-      done();
-    };
-    peer._readMessage();
-  });
-
   it('relay error from socket', function(done) {
     var peer = new Peer({host: 'localhost'});
     var socket = new EventEmitter();
