@@ -18,8 +18,15 @@ var EventEmitter = require('events').EventEmitter;
 var Messages = P2P.Messages;
 var messages = new Messages();
 var Networks = bitcore.Networks;
+var Buffers = require('buffers');
 
 describe('Peer', function() {
+
+  var buildMessage = function(hex) {
+    var m = Buffers();
+    m.push(new Buffer(hex, 'hex'));
+    return m;
+  };
 
   describe('Integration test', function() {
     it('parses this stream of data from a connection', function(callback) {
@@ -132,6 +139,62 @@ describe('Peer', function() {
       done();
     };
     peer.emit('ping', pingMessage);
+  });
+
+  it('send reject on invalid filter add', function(done) {
+    var peer = new Peer({host: 'localhost'});
+    var invalidFilter = 'f9beb4d966696c7465726c6f6164000063020000efdab15bfd' +
+        '57020000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000100000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000400000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '00000000000000000000000000000000000020000000000000000000000000000000' +
+        '00000000000000000000000000000000000000000000000000000000000000000000' +
+        '0000000000000000000000000000000000000000000000000000000000000000';
+    peer.sendMessage = function(message) {
+      message.command.should.equal('reject');
+      done();
+    };
+    peer.dataBuffer.push(new Buffer(invalidFilter, 'hex'));
+    peer._readMessage();
+  });
+
+  it('send reject on unknown command', function(done) {
+    var peer = new Peer({host: 'localhost'});
+    var invalidCommand = 'f9beb4d96d616c6963696f757300000025000000bd5e830c' +
+      '0102000000ec3995c1bf7269ff728818a65e53af00cbbee6b6eca8ac9ce7bc79d87' +
+      '7041ed8';
+    peer.sendMessage = function(message) {
+      message.command.should.equal('reject');
+      done();
+    };
+    peer.dataBuffer.push(new Buffer(invalidCommand, 'hex'));
+    peer._readMessage();
+  });
+
+  it('send reject on malformed messages', function(done) {
+    var peer = new Peer({host: 'localhost'});
+    var malformed1 = 'd8c4c3d976657273696f6e000000000065000000fc970f177211' +
+      '01000100000000000000ba628854000000000100000000000000000000000000000' +
+      '00000ffffba8886dceab0010000000000000000000000000000000000ffff050955' +
+      '22208de7e1c1ef80a1cea70f2f5361746f7368693a302e392e312fa317050001';
+    peer.dataBuffer.push(new Buffer(malformed1, 'hex'));
+    peer.sendMessage = function(message) {
+      message.command.should.equal('reject');
+      done();
+    };
+    peer._readMessage();
   });
 
   it('relay error from socket', function(done) {
